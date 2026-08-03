@@ -1,0 +1,1392 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Wheel of Origin · Siegerbild-Generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --void:#06050a;
+    --panel:#0c0a11;
+    --panel-2:#12101a;
+    --line:#2a2233;
+    --gold:#c9a227;
+    --gold-lt:#f0dfa8;
+    --gold-dk:#7d5f18;
+    --ink:#e8e2d4;
+    --muted:#9a917f;
+    --serif:'Cinzel','Trajan Pro',Georgia,'Times New Roman',serif;
+    --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0;background:var(--void);color:var(--ink);font-family:var(--sans)}
+  body{
+    min-height:100dvh;
+    background:
+      radial-gradient(120% 80% at 50% -10%, #171128 0%, transparent 60%),
+      radial-gradient(90% 60% at 50% 110%, #120c1c 0%, transparent 60%),
+      var(--void);
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+
+  header{
+    text-align:center;padding:22px 16px 6px;
+  }
+  header .eyebrow{
+    font-family:var(--serif);font-size:11px;letter-spacing:.34em;text-transform:uppercase;
+    color:var(--gold-dk);
+  }
+  header h1{
+    font-family:var(--serif);font-weight:700;font-size:clamp(22px,5vw,34px);
+    letter-spacing:.14em;margin:6px 0 0;color:var(--gold-lt);
+    text-shadow:0 0 22px rgba(201,162,39,.28);
+  }
+  header .rule{
+    margin:12px auto 0;width:min(420px,80%);height:1px;
+    background:linear-gradient(90deg,transparent,var(--gold-dk),transparent);
+    position:relative;
+  }
+  header .rule::after{
+    content:"";position:absolute;left:50%;top:-3px;width:7px;height:7px;margin-left:-3.5px;
+    background:var(--gold);transform:rotate(45deg);box-shadow:0 0 10px rgba(201,162,39,.6);
+  }
+
+  .wrap{
+    max-width:1240px;margin:0 auto;padding:18px 16px 60px;
+    display:grid;gap:22px;grid-template-columns:minmax(0,1fr);
+  }
+  @media (min-width:940px){
+    .wrap{grid-template-columns:minmax(0,1fr) 380px;align-items:start}
+  }
+
+  /* ---------- Bühne ---------- */
+  .stage-col{display:flex;flex-direction:column;align-items:center;gap:14px}
+  .stage-shell{
+    position:relative;width:100%;max-width:420px;
+  }
+  @media (min-width:940px){ .stage-shell{max-width:min(420px,58vh*0.5625)} }
+  .stage{
+    position:relative;width:100%;aspect-ratio:9/16;
+    border:1px solid var(--line);border-radius:4px;overflow:hidden;
+    background:#000;
+    box-shadow:0 0 0 1px rgba(201,162,39,.12), 0 24px 70px rgba(0,0,0,.75);
+  }
+  .stage canvas{display:block;width:100%;height:100%}
+  .stage.checker{
+    background-image:
+      linear-gradient(45deg,#191622 25%,transparent 25%),
+      linear-gradient(-45deg,#191622 25%,transparent 25%),
+      linear-gradient(45deg,transparent 75%,#191622 75%),
+      linear-gradient(-45deg,transparent 75%,#191622 75%);
+    background-size:18px 18px;
+    background-position:0 0,0 9px,9px -9px,-9px 0;
+  }
+  .dropzone{
+    position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:14px;text-align:center;padding:26px;cursor:pointer;
+    background:linear-gradient(180deg,rgba(10,8,16,.72),rgba(6,5,10,.9));
+  }
+  .dropzone.hidden{display:none}
+  .dropzone .glyph{
+    width:72px;height:72px;border:1px solid var(--gold-dk);transform:rotate(45deg);
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:inset 0 0 30px rgba(201,162,39,.12);
+  }
+  .dropzone .glyph span{transform:rotate(-45deg);font-size:26px;color:var(--gold)}
+  .dropzone p{margin:0;font-family:var(--serif);letter-spacing:.1em;font-size:14px;color:var(--gold-lt)}
+  .dropzone small{color:var(--muted);font-size:12px;max-width:26ch;line-height:1.5}
+  .stage.dragover{outline:2px dashed var(--gold);outline-offset:-8px}
+
+  .stage-bar{
+    display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;width:100%;
+  }
+  .scrub{
+    -webkit-appearance:none;appearance:none;width:100%;max-width:420px;height:22px;background:transparent;
+  }
+  .scrub::-webkit-slider-runnable-track{height:2px;background:var(--line)}
+  .scrub::-moz-range-track{height:2px;background:var(--line)}
+  .scrub::-webkit-slider-thumb{
+    -webkit-appearance:none;width:13px;height:13px;background:var(--gold);transform:rotate(45deg) translateY(-6px);
+    border:0;box-shadow:0 0 8px rgba(201,162,39,.7)
+  }
+  .scrub::-moz-range-thumb{width:11px;height:11px;background:var(--gold);border:0;transform:rotate(45deg)}
+
+  /* ---------- Panel ---------- */
+  .panel{
+    background:linear-gradient(180deg,var(--panel-2),var(--panel));
+    border:1px solid var(--line);border-radius:4px;padding:18px 16px 20px;
+    position:relative;
+  }
+  .panel::before,.panel::after{
+    content:"";position:absolute;width:14px;height:14px;border:1px solid var(--gold-dk);
+  }
+  .panel::before{top:6px;left:6px;border-right:0;border-bottom:0}
+  .panel::after{bottom:6px;right:6px;border-left:0;border-top:0}
+
+  .group{margin-bottom:20px}
+  .group:last-child{margin-bottom:0}
+  .label{
+    font-family:var(--serif);font-size:10px;letter-spacing:.28em;text-transform:uppercase;
+    color:var(--gold-dk);margin-bottom:9px;display:flex;justify-content:space-between;align-items:baseline;
+  }
+  .label b{color:var(--muted);font-weight:400;letter-spacing:.06em;font-size:11px;font-family:var(--sans)}
+
+  .chips{display:flex;flex-wrap:wrap;gap:7px}
+  .chip{
+    font-family:var(--serif);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+    padding:8px 12px;border:1px solid var(--line);background:#0a0810;color:var(--muted);
+    cursor:pointer;border-radius:3px;transition:.15s;
+  }
+  .chip:hover{border-color:var(--gold-dk);color:var(--ink)}
+  .chip[aria-pressed="true"]{
+    border-color:var(--chip,var(--gold));color:#fff;
+    background:linear-gradient(180deg,rgba(255,255,255,.06),transparent);
+    box-shadow:0 0 0 1px rgba(255,255,255,.05), 0 0 16px -4px var(--chip,var(--gold));
+  }
+  .chip .swatch{
+    display:inline-block;width:8px;height:8px;margin-right:7px;transform:rotate(45deg);
+    background:var(--chip,var(--gold));vertical-align:middle;
+  }
+
+  .row{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+  .row:last-child{margin-bottom:0}
+  .row label{font-size:12px;color:var(--muted);min-width:104px;flex:0 0 auto}
+  .row input[type=range]{flex:1;-webkit-appearance:none;appearance:none;height:20px;background:transparent}
+  .row input[type=range]::-webkit-slider-runnable-track{height:2px;background:var(--line)}
+  .row input[type=range]::-moz-range-track{height:2px;background:var(--line)}
+  .row input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;width:11px;height:11px;background:var(--gold);border:0;
+    transform:rotate(45deg) translateY(-5px)
+  }
+  .row input[type=range]::-moz-range-thumb{width:10px;height:10px;background:var(--gold);border:0}
+  .row .val{font-size:11px;color:var(--gold-lt);min-width:44px;text-align:right;font-variant-numeric:tabular-nums}
+
+  select{
+    background:#0a0810;color:var(--ink);border:1px solid var(--line);border-radius:3px;
+    padding:8px 10px;font-size:12px;font-family:var(--sans);flex:1;
+  }
+
+  button.act{
+    display:block;width:100%;text-align:center;padding:13px 14px;margin-bottom:9px;
+    font-family:var(--serif);font-size:12px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--gold-lt);background:linear-gradient(180deg,#171223,#0b0813);
+    border:1px solid var(--gold-dk);border-radius:3px;cursor:pointer;transition:.15s;
+  }
+  button.act:hover:not(:disabled){background:linear-gradient(180deg,#211a33,#0f0b18);color:#fff;border-color:var(--gold)}
+  button.act:disabled{opacity:.4;cursor:not-allowed}
+  button.act.ghost{border-color:var(--line);color:var(--muted);font-size:11px;padding:10px}
+  button.act:last-child{margin-bottom:0}
+
+  .note{font-size:11px;line-height:1.6;color:var(--muted);margin:10px 0 0}
+  .note strong{color:var(--gold-lt);font-weight:600}
+  .note.warn{color:#d9a06a}
+
+  .bar{height:2px;background:var(--line);margin-top:12px;overflow:hidden;display:none}
+  .bar.on{display:block}
+  .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--gold-dk),var(--gold-lt));transition:width .12s linear}
+  .status{font-size:11px;color:var(--gold-lt);margin-top:8px;min-height:15px;font-variant-numeric:tabular-nums}
+
+  footer{text-align:center;padding:0 20px 40px;color:#4a4356;font-size:11px;line-height:1.7}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">Wheel of Origin</div>
+  <h1>Siegerbild</h1>
+  <div class="rule"></div>
+</header>
+
+<div class="wrap">
+
+  <div class="stage-col">
+    <div class="stage-shell">
+      <div class="stage" id="stage">
+        <canvas id="preview"></canvas>
+        <div class="dropzone" id="dropzone">
+          <div class="glyph"><span>&#9670;</span></div>
+          <p>Charakterkarte ablegen</p>
+          <small>Bild hierher ziehen, tippen zum Auswählen, oder einfügen mit ⌘V</small>
+        </div>
+      </div>
+    </div>
+
+    <input type="range" class="scrub" id="scrub" min="0" max="1000" value="1000" aria-label="Zeitpunkt der Animation">
+    <div class="stage-bar">
+      <button class="act ghost" id="btnPlay" style="width:auto;padding:9px 18px;margin:0" disabled>Vorschau abspielen</button>
+      <button class="act ghost" id="btnAlpha" style="width:auto;padding:9px 18px;margin:0" aria-pressed="false">Nur Inszenierung</button>
+      <button class="act ghost" id="btnSwap" style="width:auto;padding:9px 18px;margin:0">Karte tauschen</button>
+    </div>
+  </div>
+
+  <div class="panel">
+
+    <div class="group">
+      <div class="label">Seltenheit</div>
+      <div class="chips" id="rarity"></div>
+    </div>
+
+    <div class="group">
+      <div class="label">Krönung</div>
+      <div class="chips" id="crown"></div>
+    </div>
+
+    <div class="group">
+      <div class="label">Rahmen</div>
+      <div class="chips" id="frame"></div>
+    </div>
+
+    <div class="group">
+      <div class="label">Feinabstimmung</div>
+      <div class="row"><label for="sCard">Kartengröße</label><input type="range" id="sCard" min="60" max="88" value="78"><span class="val" id="vCard">78%</span></div>
+      <div class="row"><label for="sGlow">Lichtschein</label><input type="range" id="sGlow" min="0" max="150" value="100"><span class="val" id="vGlow">100%</span></div>
+      <div class="row"><label for="sPart">Funken</label><input type="range" id="sPart" min="0" max="200" value="100"><span class="val" id="vPart">100%</span></div>
+      <div class="row"><label for="sCrown">Kronengröße</label><input type="range" id="sCrown" min="60" max="140" value="100"><span class="val" id="vCrown">100%</span></div>
+      <button class="act ghost" id="btnSeed" style="margin-top:12px">Funkenmuster neu würfeln</button>
+    </div>
+
+    <div class="group">
+      <div class="label">Standbild</div>
+      <div class="row"><label for="selRes">Auflösung</label>
+        <select id="selRes">
+          <option value="1080">1080 × 1920</option>
+          <option value="1440">1440 × 2560</option>
+          <option value="2160">2160 × 3840</option>
+        </select>
+      </div>
+      <button class="act" id="btnPng" style="margin-top:12px">PNG speichern</button>
+      <button class="act" id="btnPngAlpha">PNG ohne Hintergrund</button>
+      <p class="note">Die transparente Variante enthält Rahmen, Krönung, Lichtschein und Funken — die Karte selbst und der Hintergrund bleiben ausgespart.</p>
+    </div>
+
+    <div class="group">
+      <div class="label">Animation</div>
+      <div class="row"><label for="selDur">Länge</label>
+        <select id="selDur"><option value="3">3 Sekunden</option><option value="4" selected>4 Sekunden</option><option value="5">5 Sekunden</option></select>
+      </div>
+      <div class="row"><label for="selFps">Bildrate</label>
+        <select id="selFps"><option value="24">24 fps</option><option value="30" selected>30 fps</option><option value="60">60 fps</option></select>
+      </div>
+      <div class="row"><label for="selVRes">Auflösung</label>
+        <select id="selVRes"><option value="1080">1080 × 1920</option><option value="720">720 × 1280</option></select>
+      </div>
+      <div class="row"><label for="selFmt">Einzelbilder</label>
+        <select id="selFmt"><option value="jpeg" selected>JPEG (klein)</option><option value="png">PNG (verlustfrei)</option></select>
+      </div>
+      <p class="note" id="estNote"></p>
+      <button class="act" id="btnSeq" style="margin-top:12px">Bildsequenz als ZIP</button>
+      <button class="act" id="btnSeqAlpha">Bildsequenz ohne Hintergrund</button>
+      <button class="act" id="btnVid">Video aufzeichnen</button>
+      <div class="bar" id="bar"><i></i></div>
+      <div class="status" id="status"></div>
+      <p class="note" id="vidNote"></p>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  Bildsequenz importieren: in Premiere / Resolve / After Effects das erste Bild wählen und „Bildsequenz“ aktivieren.<br>
+  In CapCut die Bilder als Dateien einfügen und die Dauer pro Bild auf einen Frame setzen.
+</footer>
+
+<input type="file" id="file" accept="image/*" hidden>
+
+<script>
+(function(){
+"use strict";
+
+/* ===================================================================
+   Konstanten & Zustand
+   =================================================================== */
+const DW = 1080, DH = 1920;             // Entwurfsraum, alles rechnet hierin
+const PREV_W = 540, PREV_H = 960;       // Vorschau-Backing-Store
+
+const RARITIES = {
+  grau:  {name:'Grau',  a:'#d6d9e0', b:'#5f6470', glow:'#9aa2b0'},
+  gruen: {name:'Grün',  a:'#c8f7c5', b:'#237a4a', glow:'#3fd47f'},
+  blau:  {name:'Blau',  a:'#cfe9ff', b:'#1a5596', glow:'#3aa6f0'},
+  lila:  {name:'Lila',  a:'#ecd0ff', b:'#6a26bd', glow:'#a855f7'},
+  gold:  {name:'Gold',  a:'#fff2c9', b:'#a97d16', glow:'#f2c231'},
+  rot:   {name:'Rot',   a:'#ffd3c9', b:'#9c1f1f', glow:'#ef4444'}
+};
+const CROWNS = {thorn:'Zackenkrone', laurel:'Lorbeer', wings:'Sigil', ring:'Ring'};
+const FRAMES = {bracket:'Winkel', ornate:'Filigran'};
+
+const GOLD_LT = '#f5e3ab', GOLD = '#c9a227', GOLD_DK = '#7d5f18';
+
+const S = {
+  img: null,
+  rarity: 'lila',
+  crown: 'thorn',
+  frame: 'bracket',
+  cardScale: 0.78,
+  glow: 1.0,
+  parts: 1.0,
+  crownScale: 1.0,
+  seed: 20260803,
+  t: 1,
+  alphaPreview: false
+};
+
+/* ===================================================================
+   Mathe-Helfer
+   =================================================================== */
+const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
+const lerp = (a,b,p) => a + (b-a)*p;
+const easeOutCubic = p => 1 - Math.pow(1-p, 3);
+const easeOutQuint = p => 1 - Math.pow(1-p, 5);
+const easeInOut = p => p < .5 ? 2*p*p : 1 - Math.pow(-2*p+2, 2)/2;
+function easeOutBack(p){ const c1=1.70158, c3=c1+1; return 1 + c3*Math.pow(p-1,3) + c1*Math.pow(p-1,2); }
+function seg(t, from, to){ return clamp01((t-from)/(to-from)); }
+
+function mulberry32(a){
+  return function(){
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a>>>15, 1|a);
+    t = t + Math.imul(t ^ t>>>7, 61|t) ^ t;
+    return ((t ^ t>>>14) >>> 0) / 4294967296;
+  };
+}
+
+/* ===================================================================
+   Geometrie der Bühne
+   =================================================================== */
+// Wie weit ragt die jeweilige Krönung über ihre Standlinie hinaus (Anteil ihrer Breite)
+const CROWN_TOP = {thorn:0.64, laurel:0.46, wings:0.40, ring:0.46};
+const CROWN_GAP = 30;   // Luft zwischen Krönung und Rahmenoberkante
+
+function layout(){
+  const img = S.img;
+  const ar = img ? img.naturalWidth / img.naturalHeight : 9/16;
+  let h = DH * S.cardScale;
+  let w = h * ar;
+  const maxW = DW * 0.84;
+  if (w > maxW){ w = maxW; h = w / ar; }
+
+  const pad = Math.max(18, Math.min(34, w*0.032));
+  const frameW = w + pad*2, frameH = h + pad*2;
+  const topNeed = 40, bottomNeed = 104;
+
+  // Krönung nimmt so viel Höhe wie vorhanden, notfalls schrumpft sie
+  let crownW = Math.min(w*0.46, 440) * S.crownScale;
+  const kf = CROWN_TOP[S.crown] || 0.5;
+  let need = crownW*kf + CROWN_GAP;
+  const avail = DH - topNeed - bottomNeed - frameH;
+  if (need > avail){
+    const k = Math.max(0, avail - CROWN_GAP) / (crownW*kf);
+    crownW *= Math.max(0.35, Math.min(1, k));
+    need = crownW*kf + CROWN_GAP;
+  }
+  const slack = Math.max(0, avail - need);
+
+  const cx = DW/2;
+  const fy0 = topNeed + need + slack*0.5;
+  const fy1 = fy0 + frameH;
+  const cy  = (fy0 + fy1)/2;
+
+  return {
+    cx, cy, w, h,
+    x: cx - w/2, y: cy - h/2,
+    fx0: cx - frameW/2, fy0,
+    fx1: cx + frameW/2, fy1,
+    crownW, crownBaseY: fy0 - CROWN_GAP
+  };
+}
+
+/* ===================================================================
+   Zeichenbausteine
+   =================================================================== */
+function goldStroke(ctx, x0, y0, x1, y1){
+  const g = ctx.createLinearGradient(x0,y0,x1,y1);
+  g.addColorStop(0,   GOLD_DK);
+  g.addColorStop(.22, GOLD_LT);
+  g.addColorStop(.5,  GOLD);
+  g.addColorStop(.78, GOLD_LT);
+  g.addColorStop(1,   GOLD_DK);
+  return g;
+}
+function diamond(ctx, x, y, r){
+  ctx.beginPath();
+  ctx.moveTo(x, y-r); ctx.lineTo(x+r*0.62, y); ctx.lineTo(x, y+r); ctx.lineTo(x-r*0.62, y);
+  ctx.closePath();
+}
+function polyLen(p){
+  let L = 0;
+  for (let i=1;i<p.length;i++) L += Math.hypot(p[i][0]-p[i-1][0], p[i][1]-p[i-1][1]);
+  return L;
+}
+function polyPath(ctx, p){
+  ctx.beginPath(); ctx.moveTo(p[0][0], p[0][1]);
+  for (let i=1;i<p.length;i++) ctx.lineTo(p[i][0], p[i][1]);
+}
+
+/* ---- Hintergrund (entfällt im transparenten Export) ---- */
+function drawBackdrop(ctx, pal, t){
+  const g = ctx.createLinearGradient(0,0,0,DH);
+  g.addColorStop(0,'#050409'); g.addColorStop(.42,'#0c0916'); g.addColorStop(1,'#040308');
+  ctx.fillStyle = g; ctx.fillRect(0,0,DW,DH);
+
+  // Rad des Ursprungs — sehr leise, als Herkunftszeichen der Serie
+  const L = layout();
+  const spin = t*0.55;
+  ctx.save();
+  ctx.globalAlpha = 0.10 * clamp01(seg(t,.05,.55));
+  ctx.translate(L.cx, L.cy);
+  ctx.rotate(spin*0.12);
+  ctx.strokeStyle = pal.glow; ctx.lineWidth = 2;
+  for (let r of [420, 620, 820, 1010]){
+    ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2); ctx.stroke();
+  }
+  ctx.lineWidth = 1.4;
+  for (let i=0;i<24;i++){
+    const a = i/24*Math.PI*2;
+    ctx.beginPath();
+    ctx.moveTo(Math.cos(a)*420, Math.sin(a)*420);
+    ctx.lineTo(Math.cos(a)*1010, Math.sin(a)*1010);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // Vignette
+  const v = ctx.createRadialGradient(DW/2, DH*0.46, DW*0.28, DW/2, DH*0.5, DH*0.72);
+  v.addColorStop(0,'rgba(0,0,0,0)'); v.addColorStop(1,'rgba(0,0,0,.82)');
+  ctx.fillStyle = v; ctx.fillRect(0,0,DW,DH);
+}
+
+/* ---- Lichtschein ---- */
+function drawGlow(ctx, pal, t){
+  const p = easeOutQuint(seg(t, .06, .52));
+  if (p <= 0 || S.glow <= 0) return;
+  const L = layout();
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+
+  // Strahlenkranz
+  const rays = 20, rot = t*0.42;
+  ctx.save();
+  ctx.translate(L.cx, L.cy - L.h*0.06);
+  ctx.rotate(rot);
+  for (let i=0;i<rays;i++){
+    const a = i/rays*Math.PI*2;
+    const wid = 0.030 + (i%3===0 ? 0.026 : 0);
+    const len = (1250) * p * (i%2 ? 0.78 : 1);
+    const g = ctx.createLinearGradient(0,0, Math.cos(a)*len, Math.sin(a)*len);
+    g.addColorStop(0, hexA(pal.glow, 0.30*S.glow*p));
+    g.addColorStop(1, hexA(pal.glow, 0));
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.moveTo(0,0);
+    ctx.lineTo(Math.cos(a-wid)*len, Math.sin(a-wid)*len);
+    ctx.lineTo(Math.cos(a+wid)*len, Math.sin(a+wid)*len);
+    ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
+
+  // Kernschein
+  const r = DW*0.92*p;
+  const g2 = ctx.createRadialGradient(L.cx, L.cy-L.h*0.08, r*0.06, L.cx, L.cy-L.h*0.08, r);
+  g2.addColorStop(0,   hexA(pal.a,    0.40*S.glow*p));
+  g2.addColorStop(.30, hexA(pal.glow, 0.26*S.glow*p));
+  g2.addColorStop(.66, hexA(pal.b,    0.11*S.glow*p));
+  g2.addColorStop(1,   hexA(pal.b,    0));
+  ctx.fillStyle = g2;
+  ctx.fillRect(0,0,DW,DH);
+
+  // Sockelglanz unter der Karte
+  ctx.save();
+  ctx.translate(L.cx, L.fy1 + 40);
+  ctx.scale(1, 0.24);
+  const g3 = ctx.createRadialGradient(0,0,0,0,0,DW*0.5);
+  g3.addColorStop(0, hexA(pal.a, 0.34*S.glow*p));
+  g3.addColorStop(1, hexA(pal.a, 0));
+  ctx.fillStyle = g3;
+  ctx.beginPath(); ctx.arc(0,0,DW*0.5,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+
+  ctx.restore();
+}
+
+/* ---- Karte ---- */
+function drawCard(ctx, t){
+  if (!S.img) return;
+  const L = layout();
+  const p = easeOutCubic(seg(t, 0, .34));
+  const sc = lerp(1.16, 1, p);
+  const al = clamp01(seg(t, 0, .22));
+  ctx.save();
+  ctx.globalAlpha = al;
+  ctx.translate(L.cx, L.cy);
+  ctx.scale(sc, sc);
+  ctx.shadowColor = 'rgba(0,0,0,.85)';
+  ctx.shadowBlur = 48; ctx.shadowOffsetY = 18;
+  ctx.drawImage(S.img, -L.w/2, -L.h/2, L.w, L.h);
+  ctx.restore();
+}
+
+/* ---- Rahmen ---- */
+function drawFrame(ctx, pal, t){
+  const L = layout();
+  const p = easeInOut(seg(t, .28, .62));
+  if (p <= 0) return;
+  const cx = L.cx;
+
+  const right = [[cx,L.fy0],[L.fx1,L.fy0],[L.fx1,L.fy1],[cx,L.fy1]];
+  const left  = [[cx,L.fy0],[L.fx0,L.fy0],[L.fx0,L.fy1],[cx,L.fy1]];
+  const len = polyLen(right);
+
+  ctx.save();
+  ctx.lineCap = 'butt'; ctx.lineJoin = 'miter';
+
+  // Doppellinie: kräftig außen, Haarlinie innen
+  for (const pass of [{o:0, w:3.4, a:1}, {o:11, w:1.1, a:.55}]){
+    const o = pass.o;
+    const R = [[cx,L.fy0+o],[L.fx1-o,L.fy0+o],[L.fx1-o,L.fy1-o],[cx,L.fy1-o]];
+    const Lf= [[cx,L.fy0+o],[L.fx0+o,L.fy0+o],[L.fx0+o,L.fy1-o],[cx,L.fy1-o]];
+    const l = polyLen(R);
+    ctx.lineWidth = pass.w;
+    ctx.globalAlpha = pass.a;
+    ctx.strokeStyle = goldStroke(ctx, L.fx0, L.fy0, L.fx1, L.fy1);
+    ctx.setLineDash([l*p, l]);
+    polyPath(ctx, R); ctx.stroke();
+    polyPath(ctx, Lf); ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  ctx.globalAlpha = 1;
+
+  // Rautentropfen an den Kantenmitten
+  const dp = clamp01(seg(t,.5,.68));
+  if (dp > 0){
+    ctx.fillStyle = GOLD_LT;
+    ctx.globalAlpha = dp;
+    const my = (L.fy0+L.fy1)/2;
+    for (const [x,y,r] of [[cx,L.fy0,9],[cx,L.fy1,9],[L.fx0,my,9],[L.fx1,my,9]]){
+      diamond(ctx, x, y, r*dp);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // Ecken
+  const cp = easeOutCubic(clamp01(seg(t,.34,.66)));
+  if (cp > 0){
+    ctx.globalAlpha = cp;
+    ctx.strokeStyle = GOLD_LT;
+    ctx.lineWidth = 3.6;
+    ctx.lineCap = 'round';
+    const off = lerp(34, 15, cp);
+    const arm = 78;
+    const corners = [
+      [L.fx0-off, L.fy0-off,  1,  1],
+      [L.fx1+off, L.fy0-off, -1,  1],
+      [L.fx0-off, L.fy1+off,  1, -1],
+      [L.fx1+off, L.fy1+off, -1, -1]
+    ];
+    for (const [x,y,sx,sy] of corners){
+      if (S.frame === 'bracket'){
+        ctx.beginPath();
+        ctx.moveTo(x + sx*arm, y);
+        ctx.lineTo(x, y);
+        ctx.lineTo(x, y + sy*arm);
+        ctx.stroke();
+      } else {
+        // Filigran: eingerollte Voluten
+        ctx.beginPath();
+        ctx.moveTo(x + sx*arm, y);
+        ctx.quadraticCurveTo(x + sx*20, y + sy*2, x + sx*4, y + sy*22);
+        ctx.quadraticCurveTo(x - sx*10, y + sy*44, x + sx*16, y + sy*54);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x, y + sy*arm);
+        ctx.quadraticCurveTo(x + sx*2, y + sy*20, x + sx*22, y + sy*4);
+        ctx.quadraticCurveTo(x + sx*44, y - sy*10, x + sx*54, y + sy*16);
+        ctx.stroke();
+        ctx.fillStyle = pal.a;
+        diamond(ctx, x + sx*6, y + sy*6, 6); ctx.fill();
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+  ctx.restore();
+
+  // Zierteiler unter der Karte
+  if (dp > 0){
+    const y = L.fy1 + 54;
+    const half = L.w*0.30*dp;
+    ctx.save();
+    ctx.globalAlpha = dp*0.9;
+    ctx.strokeStyle = GOLD_DK; ctx.lineWidth = 1.4;
+    ctx.beginPath(); ctx.moveTo(cx-half, y); ctx.lineTo(cx-24, y);
+    ctx.moveTo(cx+24, y); ctx.lineTo(cx+half, y); ctx.stroke();
+    ctx.fillStyle = pal.a;
+    diamond(ctx, cx, y, 10*dp); ctx.fill();
+    ctx.restore();
+  }
+}
+
+/* ---- Krönungen ---- */
+function drawCrown(ctx, pal, t){
+  const L = layout();
+  const p = clamp01(seg(t, .5, .84));
+  if (p <= 0) return;
+  const e = easeOutBack(p);
+  const w = L.crownW;
+  const cx = L.cx;
+  const baseY = L.crownBaseY;
+  const y = baseY - lerp(Math.min(230, baseY*0.9), 0, e);
+  const al = clamp01(seg(t,.5,.66));
+
+  ctx.save();
+  ctx.globalAlpha = al;
+  ctx.translate(cx, y);
+
+  // Aura hinter der Krönung
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const gr = ctx.createRadialGradient(0,-w*0.12,0,0,-w*0.12,w*0.95);
+  gr.addColorStop(0, hexA(pal.a, .34*p*S.glow));
+  gr.addColorStop(1, hexA(pal.a, 0));
+  ctx.fillStyle = gr;
+  ctx.beginPath(); ctx.arc(0,-w*0.12,w*0.95,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+
+  const gs = goldStroke(ctx, -w/2, -w*0.5, w/2, w*0.2);
+  ctx.strokeStyle = gs; ctx.fillStyle = gs;
+  ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+
+  if (S.crown === 'thorn')  crownThorn(ctx, w, pal);
+  if (S.crown === 'laurel') crownLaurel(ctx, w, pal);
+  if (S.crown === 'wings')  crownWings(ctx, w, pal);
+  if (S.crown === 'ring')   crownRing(ctx, w, pal, t);
+
+  ctx.restore();
+
+  // Aufblitzen im Moment des Aufsetzens
+  const fl = clamp01(seg(t,.78,.83)) * (1 - clamp01(seg(t,.83,.96)));
+  if (fl > 0.001){
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const g = ctx.createRadialGradient(cx, baseY, 0, cx, baseY, w*1.5);
+    g.addColorStop(0, hexA('#ffffff', .55*fl));
+    g.addColorStop(.4, hexA(pal.a, .28*fl));
+    g.addColorStop(1, hexA(pal.a, 0));
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(cx, baseY, w*1.5, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+}
+
+function crownThorn(ctx, w, pal){
+  const hw = w/2, bh = w*0.11;
+  // Reif
+  ctx.lineWidth = w*0.030;
+  ctx.beginPath();
+  ctx.moveTo(-hw, 0);
+  ctx.quadraticCurveTo(0, bh*0.62, hw, 0);
+  ctx.quadraticCurveTo(0, bh*0.28, -hw, 0);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+
+  // Dornenzacken
+  const spikes = [[0,1],[-0.30,0.72],[0.30,0.72],[-0.58,0.46],[0.58,0.46],[-0.84,0.26],[0.84,0.26]];
+  ctx.lineWidth = w*0.022;
+  for (const [ox, hs] of spikes){
+    const x = ox*hw, hgt = w*0.56*hs, dir = ox === 0 ? 1 : Math.sign(ox);
+    const bw = w*0.035*(0.6+hs*0.6);
+    ctx.beginPath();
+    ctx.moveTo(x - bw, 6);
+    ctx.quadraticCurveTo(x - bw*0.35, -hgt*0.55, x + dir*hgt*0.22, -hgt);
+    ctx.quadraticCurveTo(x + bw*0.55, -hgt*0.45, x + bw, 6);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  }
+  // Edelsteine
+  ctx.fillStyle = pal.a;
+  ctx.shadowColor = pal.glow; ctx.shadowBlur = w*0.10;
+  diamond(ctx, 0, -w*0.05, w*0.050); ctx.fill();
+  diamond(ctx, -hw*0.44, bh*0.16, w*0.030); ctx.fill();
+  diamond(ctx,  hw*0.44, bh*0.16, w*0.030); ctx.fill();
+  ctx.shadowBlur = 0;
+}
+
+function crownLaurel(ctx, w, pal){
+  const hw = w/2;
+  ctx.lineWidth = w*0.020;
+  for (const s of [-1, 1]){
+    // Zweigbogen
+    ctx.beginPath();
+    ctx.moveTo(s*hw*0.10, w*0.14);
+    ctx.quadraticCurveTo(s*hw*0.98, w*0.06, s*hw*0.66, -w*0.34);
+    ctx.stroke();
+    // Blätter
+    for (let i=0;i<8;i++){
+      const u = i/7;
+      const bx = lerp(s*hw*0.10, s*hw*0.66, u) + Math.sin(u*Math.PI)*s*hw*0.30;
+      const by = lerp(w*0.14, -w*0.34, u) - Math.sin(u*Math.PI)*w*0.05;
+      const ang = -s*(0.5 + u*1.5);
+      const ll = w*0.115*(1 - u*0.35);
+      ctx.save();
+      ctx.translate(bx, by); ctx.rotate(ang);
+      ctx.beginPath();
+      ctx.moveTo(0,0);
+      ctx.quadraticCurveTo(ll*0.55, -ll*0.34, ll, 0);
+      ctx.quadraticCurveTo(ll*0.55,  ll*0.34, 0, 0);
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
+  }
+  // Bandschleife unten
+  ctx.lineWidth = w*0.016;
+  ctx.beginPath();
+  ctx.moveTo(-w*0.09, w*0.15);
+  ctx.quadraticCurveTo(0, w*0.24, w*0.09, w*0.15);
+  ctx.stroke();
+  // Stein an der Spitze
+  ctx.fillStyle = pal.a;
+  ctx.shadowColor = pal.glow; ctx.shadowBlur = w*0.12;
+  diamond(ctx, 0, -w*0.30, w*0.062); ctx.fill();
+  ctx.shadowBlur = 0;
+}
+
+function crownWings(ctx, w, pal){
+  const hw = w/2;
+  ctx.lineWidth = w*0.014;
+  for (const s of [-1,1]){
+    for (let i=0;i<5;i++){
+      const u = i/4;
+      const len = hw*(0.98 - u*0.34);
+      const y0 = -w*0.05 + u*w*0.10;
+      const drop = w*(0.06 + u*0.16);
+      ctx.beginPath();
+      ctx.moveTo(s*w*0.055, y0);
+      ctx.quadraticCurveTo(s*len*0.55, y0 - w*0.13 + u*w*0.06, s*len, y0 + drop*0.35);
+      ctx.quadraticCurveTo(s*len*0.52, y0 + drop, s*w*0.055, y0 + w*0.045);
+      ctx.closePath();
+      ctx.fill(); ctx.stroke();
+    }
+  }
+  // Mittelsigil
+  ctx.beginPath();
+  ctx.moveTo(0, -w*0.30);
+  ctx.lineTo(w*0.075, -w*0.02);
+  ctx.lineTo(0, w*0.24);
+  ctx.lineTo(-w*0.075, -w*0.02);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+  ctx.fillStyle = pal.a;
+  ctx.shadowColor = pal.glow; ctx.shadowBlur = w*0.12;
+  diamond(ctx, 0, -w*0.03, w*0.052); ctx.fill();
+  ctx.shadowBlur = 0;
+}
+
+function crownRing(ctx, w, pal, t){
+  const rx = w*0.50, ry = w*0.165;
+  ctx.lineWidth = w*0.026;
+  ctx.beginPath(); ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI*2); ctx.stroke();
+  ctx.lineWidth = w*0.008;
+  ctx.globalAlpha *= 0.7;
+  ctx.beginPath(); ctx.ellipse(0, 0, rx*0.84, ry*0.80, 0, 0, Math.PI*2); ctx.stroke();
+  ctx.globalAlpha /= 0.7;
+
+  // Teilstriche wie an einem Rad
+  const rot = t*0.9;
+  for (let i=0;i<28;i++){
+    const a = i/28*Math.PI*2 + rot;
+    const long = i % 7 === 0;
+    const r0 = long ? 1.02 : 1.0, r1 = long ? 1.20 : 1.10;
+    ctx.lineWidth = long ? w*0.014 : w*0.007;
+    ctx.beginPath();
+    ctx.moveTo(Math.cos(a)*rx*r0, Math.sin(a)*ry*r0);
+    ctx.lineTo(Math.cos(a)*rx*r1, Math.sin(a)*ry*r1);
+    ctx.stroke();
+  }
+  // Umlaufende Steine
+  ctx.fillStyle = pal.a;
+  ctx.shadowColor = pal.glow; ctx.shadowBlur = w*0.10;
+  for (let i=0;i<3;i++){
+    const a = i/3*Math.PI*2 + rot*1.6;
+    diamond(ctx, Math.cos(a)*rx, Math.sin(a)*ry, w*0.042);
+    ctx.fill();
+  }
+  ctx.shadowBlur = 0;
+  // Krönungsstein oben
+  ctx.fillStyle = pal.a;
+  ctx.shadowColor = pal.glow; ctx.shadowBlur = w*0.14;
+  diamond(ctx, 0, -ry*1.9, w*0.058); ctx.fill();
+  ctx.shadowBlur = 0;
+}
+
+/* ---- Funken & Staub ---- */
+function drawParticles(ctx, pal, t){
+  if (S.parts <= 0) return;
+  const fade = clamp01(seg(t, .18, .5));
+  const L = layout();
+  const n = Math.round(150 * S.parts);
+  const rnd = mulberry32(S.seed);
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i=0;i<n;i++){
+    const x0    = rnd()*DW;
+    const phase = rnd();
+    const spd   = 0.35 + rnd()*0.9;
+    const size  = 1.2 + rnd()*3.4;
+    const drift = (rnd()-0.5)*90;
+    const warm  = rnd() < 0.42;
+    const yTop  = DH*0.06 + rnd()*DH*0.2;
+    const yBot  = DH*(0.72 + rnd()*0.3);
+
+    const life = (t*spd + phase) % 1;
+    const y = lerp(yBot, yTop, life);
+    const x = x0 + Math.sin(life*Math.PI*2 + phase*9)*drift;
+    const near = 1 - Math.min(1, Math.abs(x - L.cx)/(DW*0.85));
+    const a = Math.sin(Math.PI*life) * (0.22 + near*0.5) * fade;
+    if (a <= 0.004) continue;
+
+    ctx.fillStyle = hexA(warm ? GOLD_LT : pal.a, a);
+    ctx.beginPath(); ctx.arc(x, y, size, 0, Math.PI*2); ctx.fill();
+    if (size > 3.2){
+      ctx.globalAlpha = a*0.5;
+      ctx.fillStyle = hexA(warm ? GOLD : pal.glow, a*0.5);
+      ctx.beginPath(); ctx.arc(x, y, size*2.6, 0, Math.PI*2); ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  // Funkenstoß beim Aufsetzen der Krone
+  const bp = clamp01(seg(t, .78, 1));
+  if (bp > 0 && bp < 1){
+    const rnd2 = mulberry32(S.seed ^ 0x9e3779b9);
+    const cx = L.cx, cy = L.crownBaseY - L.crownW*0.16;
+    const m = Math.round(70 * S.parts);
+    for (let i=0;i<m;i++){
+      const a0 = rnd2()*Math.PI*2;
+      const v  = 120 + rnd2()*560;
+      const sz = 1.4 + rnd2()*3.2;
+      const d  = easeOutQuint(bp)*v;
+      const x = cx + Math.cos(a0)*d*1.25;
+      const y = cy + Math.sin(a0)*d*0.8 + bp*bp*220;
+      const a = (1-bp)*(0.55 + rnd2()*0.45);
+      ctx.fillStyle = hexA(rnd2()<0.5 ? GOLD_LT : pal.a, a);
+      ctx.beginPath(); ctx.arc(x, y, sz, 0, Math.PI*2); ctx.fill();
+    }
+  }
+  ctx.restore();
+}
+
+/* ---- Farbhilfe ---- */
+const _hexCache = {};
+function hexA(hex, a){
+  if (a <= 0) return 'rgba(0,0,0,0)';
+  let rgb = _hexCache[hex];
+  if (!rgb){
+    const h = hex.replace('#','');
+    rgb = [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)];
+    _hexCache[hex] = rgb;
+  }
+  return 'rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+','+Math.min(1,a).toFixed(3)+')';
+}
+
+/* ===================================================================
+   Hauptzeichnung — eine Funktion für Vorschau, Standbild und Sequenz
+   =================================================================== */
+function render(ctx, W, H, t, opts){
+  opts = opts || {};
+  const transparent = !!opts.transparent;
+  const pal = RARITIES[S.rarity];
+
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.clearRect(0,0,W,H);
+  ctx.save();
+  ctx.scale(W/DW, H/DH);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+
+  if (!transparent) drawBackdrop(ctx, pal, t);
+  drawGlow(ctx, pal, t);
+  if (!transparent) drawCard(ctx, t);
+  drawFrame(ctx, pal, t);
+  drawCrown(ctx, pal, t);
+  drawParticles(ctx, pal, t);
+
+  ctx.restore();
+}
+
+/* ===================================================================
+   Vorschau
+   =================================================================== */
+const prevCanvas = document.getElementById('preview');
+const pctx = prevCanvas.getContext('2d');
+prevCanvas.width = PREV_W; prevCanvas.height = PREV_H;
+
+let raf = 0, playStart = 0, playing = false;
+
+function drawPreview(){
+  render(pctx, PREV_W, PREV_H, S.t, {transparent: S.alphaPreview});
+}
+
+function scheduleDraw(){
+  if (playing) return;              // läuft ohnehin schon
+  if (raf) return;
+  raf = requestAnimationFrame(()=>{ raf = 0; drawPreview(); });
+}
+
+function play(){
+  if (!S.img) return;
+  stop();
+  playing = true;
+  playStart = performance.now();
+  document.getElementById('btnPlay').textContent = 'Anhalten';
+  const dur = parseFloat(document.getElementById('selDur').value)*1000;
+  const loop = (now)=>{
+    if (!playing) return;
+    const p = (now - playStart)/dur;
+    if (p >= 1){ S.t = 1; syncScrub(); drawPreview(); stop(); return; }
+    S.t = p; syncScrub(); drawPreview();
+    raf = requestAnimationFrame(loop);
+  };
+  raf = requestAnimationFrame(loop);
+}
+function stop(){
+  playing = false;
+  if (raf){ cancelAnimationFrame(raf); raf = 0; }
+  document.getElementById('btnPlay').textContent = 'Vorschau abspielen';
+}
+function syncScrub(){ document.getElementById('scrub').value = String(Math.round(S.t*1000)); }
+
+/* ===================================================================
+   Bedienelemente
+   =================================================================== */
+function buildChips(hostId, entries, current, onPick, colorOf){
+  const host = document.getElementById(hostId);
+  host.innerHTML = '';
+  for (const key of Object.keys(entries)){
+    const b = document.createElement('button');
+    b.className = 'chip';
+    b.type = 'button';
+    b.setAttribute('aria-pressed', String(key === current()));
+    if (colorOf) b.style.setProperty('--chip', colorOf(key));
+    b.innerHTML = (colorOf ? '<span class="swatch"></span>' : '') + entries[key];
+    b.addEventListener('click', ()=>{
+      onPick(key);
+      [...host.children].forEach(c => c.setAttribute('aria-pressed','false'));
+      b.setAttribute('aria-pressed','true');
+      scheduleDraw();
+    });
+    host.appendChild(b);
+  }
+}
+buildChips('rarity', Object.fromEntries(Object.entries(RARITIES).map(([k,v])=>[k,v.name])),
+  ()=>S.rarity, k=>{S.rarity=k;}, k=>RARITIES[k].glow);
+buildChips('crown', CROWNS, ()=>S.crown, k=>{S.crown=k;});
+buildChips('frame', FRAMES, ()=>S.frame, k=>{S.frame=k;});
+
+function bindRange(id, valId, apply, fmt){
+  const el = document.getElementById(id), out = document.getElementById(valId);
+  const upd = ()=>{ apply(parseFloat(el.value)); out.textContent = fmt(parseFloat(el.value)); scheduleDraw(); };
+  el.addEventListener('input', upd);
+  upd();
+}
+bindRange('sCard','vCard', v=>S.cardScale=v/100, v=>v+'%');
+bindRange('sGlow','vGlow', v=>S.glow=v/100, v=>v+'%');
+bindRange('sPart','vPart', v=>S.parts=v/100, v=>v+'%');
+bindRange('sCrown','vCrown', v=>S.crownScale=v/100, v=>v+'%');
+
+document.getElementById('btnSeed').addEventListener('click', ()=>{
+  S.seed = (Math.random()*4294967295)>>>0;
+  scheduleDraw();
+});
+
+document.getElementById('scrub').addEventListener('input', e=>{
+  stop();
+  S.t = parseInt(e.target.value,10)/1000;
+  scheduleDraw();
+});
+document.getElementById('btnPlay').addEventListener('click', ()=>{ playing ? stop() : play(); });
+document.getElementById('btnAlpha').addEventListener('click', e=>{
+  S.alphaPreview = !S.alphaPreview;
+  e.currentTarget.setAttribute('aria-pressed', String(S.alphaPreview));
+  document.getElementById('stage').classList.toggle('checker', S.alphaPreview);
+  scheduleDraw();
+});
+
+/* ===================================================================
+   Bildaufnahme
+   =================================================================== */
+const fileInput = document.getElementById('file');
+const dropzone  = document.getElementById('dropzone');
+const stageEl   = document.getElementById('stage');
+
+function loadFile(f){
+  if (!f || !/^image\//.test(f.type)) { setStatus('Das war kein Bild. Bitte PNG oder JPG ablegen.'); return; }
+  const url = URL.createObjectURL(f);
+  const img = new Image();
+  img.onload = ()=>{
+    S.img = img;
+    dropzone.classList.add('hidden');
+    document.getElementById('btnPlay').disabled = false;
+    S.t = 1; syncScrub();
+    setStatus('');
+    scheduleDraw();
+  };
+  img.onerror = ()=>{ setStatus('Das Bild konnte nicht geladen werden.'); URL.revokeObjectURL(url); };
+  img.src = url;
+}
+dropzone.addEventListener('click', ()=>fileInput.click());
+document.getElementById('btnSwap').addEventListener('click', ()=>fileInput.click());
+fileInput.addEventListener('change', e=>{ if (e.target.files[0]) loadFile(e.target.files[0]); e.target.value=''; });
+
+['dragenter','dragover'].forEach(ev=>stageEl.addEventListener(ev, e=>{
+  e.preventDefault(); stageEl.classList.add('dragover');
+}));
+['dragleave','drop'].forEach(ev=>stageEl.addEventListener(ev, e=>{
+  e.preventDefault(); stageEl.classList.remove('dragover');
+}));
+stageEl.addEventListener('drop', e=>{
+  const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+  if (f) loadFile(f);
+});
+window.addEventListener('paste', e=>{
+  const items = e.clipboardData && e.clipboardData.items;
+  if (!items) return;
+  for (const it of items){
+    if (it.type && it.type.indexOf('image') === 0){ loadFile(it.getAsFile()); break; }
+  }
+});
+
+/* ===================================================================
+   Export: Standbild
+   =================================================================== */
+function makeCanvas(w,h){
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  return c;
+}
+function freeCanvas(c){ c.width = 1; c.height = 1; }
+
+function saveBlob(blob, name){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 4000);
+}
+function stamp(){
+  const d = new Date(), p = n => String(n).padStart(2,'0');
+  return d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+'-'+p(d.getHours())+p(d.getMinutes())+p(d.getSeconds());
+}
+function canvasBlob(c, mime, q){
+  return new Promise(res => c.toBlob(b => res(b), mime || 'image/png', q));
+}
+
+async function exportStill(transparent){
+  if (!S.img && !transparent){ setStatus('Erst eine Charakterkarte laden.'); return; }
+  const w = parseInt(document.getElementById('selRes').value,10);
+  const h = Math.round(w*16/9);
+  setStatus('Standbild wird gerendert …');
+  await frame();
+  const c = makeCanvas(w,h);
+  const ctx = c.getContext('2d');
+  render(ctx, w, h, 1, {transparent});
+  const blob = await canvasBlob(c);
+  freeCanvas(c);
+  saveBlob(blob, 'siegerbild-'+S.rarity+(transparent?'-overlay':'')+'-'+stamp()+'.png');
+  setStatus('Standbild gespeichert (' + w + ' × ' + h + ').');
+}
+document.getElementById('btnPng').addEventListener('click', ()=>exportStill(false));
+document.getElementById('btnPngAlpha').addEventListener('click', ()=>exportStill(true));
+
+/* ===================================================================
+   ZIP-Schreiber (Methode „store“ — PNGs sind bereits komprimiert)
+   =================================================================== */
+const CRC_TABLE = (()=>{
+  const t = new Uint32Array(256);
+  for (let n=0;n<256;n++){
+    let c = n;
+    for (let k=0;k<8;k++) c = c & 1 ? 0xEDB88320 ^ (c>>>1) : c>>>1;
+    t[n] = c>>>0;
+  }
+  return t;
+})();
+function crc32(buf){
+  let c = 0xFFFFFFFF;
+  for (let i=0;i<buf.length;i++) c = CRC_TABLE[(c ^ buf[i]) & 0xFF] ^ (c>>>8);
+  return (c ^ 0xFFFFFFFF)>>>0;
+}
+function dosTime(d){
+  return ((d.getHours()<<11) | (d.getMinutes()<<5) | (d.getSeconds()/2|0)) & 0xFFFF;
+}
+function dosDate(d){
+  return (((d.getFullYear()-1980)<<9) | ((d.getMonth()+1)<<5) | d.getDate()) & 0xFFFF;
+}
+function ZipWriter(){
+  this.parts = [];
+  this.entries = [];
+  this.offset = 0;
+  this.now = new Date();
+}
+ZipWriter.prototype.add = function(name, data){
+  const nameBytes = new TextEncoder().encode(name);
+  const crc = crc32(data);
+  const head = new Uint8Array(30 + nameBytes.length);
+  const dv = new DataView(head.buffer);
+  dv.setUint32(0, 0x04034b50, true);
+  dv.setUint16(4, 20, true);
+  dv.setUint16(6, 0, true);
+  dv.setUint16(8, 0, true);
+  dv.setUint16(10, dosTime(this.now), true);
+  dv.setUint16(12, dosDate(this.now), true);
+  dv.setUint32(14, crc, true);
+  dv.setUint32(18, data.length, true);
+  dv.setUint32(22, data.length, true);
+  dv.setUint16(26, nameBytes.length, true);
+  dv.setUint16(28, 0, true);
+  head.set(nameBytes, 30);
+  this.parts.push(head, data);
+  this.entries.push({nameBytes, crc, size: data.length, offset: this.offset});
+  this.offset += head.length + data.length;
+};
+ZipWriter.prototype.finish = function(){
+  const cdParts = [];
+  let cdSize = 0;
+  for (const e of this.entries){
+    const b = new Uint8Array(46 + e.nameBytes.length);
+    const dv = new DataView(b.buffer);
+    dv.setUint32(0, 0x02014b50, true);
+    dv.setUint16(4, 20, true);
+    dv.setUint16(6, 20, true);
+    dv.setUint16(8, 0, true);
+    dv.setUint16(10, 0, true);
+    dv.setUint16(12, dosTime(this.now), true);
+    dv.setUint16(14, dosDate(this.now), true);
+    dv.setUint32(16, e.crc, true);
+    dv.setUint32(20, e.size, true);
+    dv.setUint32(24, e.size, true);
+    dv.setUint16(28, e.nameBytes.length, true);
+    dv.setUint32(42, e.offset, true);
+    b.set(e.nameBytes, 46);
+    cdParts.push(b);
+    cdSize += b.length;
+  }
+  const end = new Uint8Array(22);
+  const dv = new DataView(end.buffer);
+  dv.setUint32(0, 0x06054b50, true);
+  dv.setUint16(8, this.entries.length, true);
+  dv.setUint16(10, this.entries.length, true);
+  dv.setUint32(12, cdSize, true);
+  dv.setUint32(16, this.offset, true);
+  return new Blob(this.parts.concat(cdParts, [end]), {type:'application/zip'});
+};
+
+/* ===================================================================
+   Export: Bildsequenz
+   =================================================================== */
+let busy = false;
+const bar = document.getElementById('bar');
+const barFill = bar.querySelector('i');
+const statusEl = document.getElementById('status');
+function setStatus(s){ statusEl.textContent = s; }
+function setProgress(p){
+  bar.classList.toggle('on', p !== null);
+  if (p !== null) barFill.style.width = (p*100).toFixed(1)+'%';
+}
+function frame(){ return new Promise(r=>requestAnimationFrame(()=>r())); }
+function tick(){ return new Promise(r=>setTimeout(r, 0)); }
+function setBusy(v){
+  busy = v;
+  document.querySelectorAll('button.act').forEach(b=>{
+    if (b.id === 'btnSwap') return;
+    if (b.id === 'btnVid' && !VID){ b.disabled = true; return; }
+    b.disabled = v || (b.id === 'btnPlay' && !S.img);
+  });
+}
+
+async function exportSequence(transparent){
+  if (busy) return;
+  if (!S.img && !transparent){ setStatus('Erst eine Charakterkarte laden.'); return; }
+  stop();
+  setBusy(true);
+  const dur = parseFloat(document.getElementById('selDur').value);
+  const fps = parseInt(document.getElementById('selFps').value,10);
+  const w   = parseInt(document.getElementById('selVRes').value,10);
+  const h   = Math.round(w*16/9);
+  const N   = Math.round(dur*fps);
+  // Ohne Hintergrund geht nur PNG — JPEG kennt keine Transparenz
+  const useJpg = !transparent && document.getElementById('selFmt').value === 'jpeg';
+  const mime = useJpg ? 'image/jpeg' : 'image/png';
+  const ext  = useJpg ? 'jpg' : 'png';
+
+  const c = makeCanvas(w,h);
+  const ctx = c.getContext('2d');
+  const zip = new ZipWriter();
+  const pad = String(N).length;
+
+  try{
+    for (let i=0;i<N;i++){
+      const t = N === 1 ? 1 : i/(N-1);
+      render(ctx, w, h, t, {transparent});
+      const blob = await canvasBlob(c, mime, 0.93);
+      const buf = new Uint8Array(await blob.arrayBuffer());
+      zip.add('sieger_' + String(i).padStart(pad,'0') + '.' + ext, buf);
+      setProgress((i+1)/N);
+      setStatus('Bild ' + (i+1) + ' von ' + N + ' …');
+      await tick();
+    }
+    setStatus('ZIP wird gepackt …');
+    await tick();
+    const out = zip.finish();
+    freeCanvas(c);
+    saveBlob(out, 'siegerbild-sequenz-' + S.rarity + (transparent?'-overlay':'') + '-' + fps + 'fps-' + stamp() + '.zip');
+    setStatus(N + ' Bilder gespeichert · ' + (out.size/1048576).toFixed(1) + ' MB · ' + fps + ' fps');
+  } catch(err){
+    freeCanvas(c);
+    setStatus('Abgebrochen: ' + (err && err.message ? err.message : 'zu wenig Speicher. Kleinere Auflösung oder Bildrate wählen.'));
+  } finally {
+    setProgress(null);
+    setBusy(false);
+  }
+}
+document.getElementById('btnSeq').addEventListener('click', ()=>exportSequence(false));
+document.getElementById('btnSeqAlpha').addEventListener('click', ()=>exportSequence(true));
+
+const estNote = document.getElementById('estNote');
+function updateEstimate(){
+  const dur = parseFloat(document.getElementById('selDur').value);
+  const fps = parseInt(document.getElementById('selFps').value,10);
+  const w   = parseInt(document.getElementById('selVRes').value,10);
+  const jpg = document.getElementById('selFmt').value === 'jpeg';
+  const N   = Math.round(dur*fps);
+  const px  = w*w*16/9;
+  const per = jpg ? px*0.22 : px*1.6;        // grobe Erfahrungswerte aus Messungen
+  const mb  = N*per/1048576;
+  estNote.className = mb > 400 ? 'note warn' : 'note';
+  estNote.innerHTML = N + ' Einzelbilder, geschätzt <strong>' + (mb<1000 ? mb.toFixed(0)+' MB' : (mb/1024).toFixed(1)+' GB') + '</strong>. ' +
+    (mb > 400
+      ? 'Das ist viel für ein iPhone — kleinere Auflösung, weniger Bilder pro Sekunde oder JPEG wählen.'
+      : 'Ohne Hintergrund wird immer PNG geschrieben, da JPEG keine Transparenz kann.');
+}
+['selDur','selFps','selVRes','selFmt'].forEach(id=>{
+  document.getElementById(id).addEventListener('change', updateEstimate);
+});
+updateEstimate();
+
+/* ===================================================================
+   Export: Video (Zugabe, Verfügbarkeit je nach Browser)
+   =================================================================== */
+function pickMime(){
+  if (typeof MediaRecorder === 'undefined' || !MediaRecorder.isTypeSupported) return null;
+  const cands = [
+    ['video/mp4;codecs=avc1.42E01E','MP4 (H.264)'],
+    ['video/mp4','MP4'],
+    ['video/webm;codecs=vp9','WebM (VP9)'],
+    ['video/webm;codecs=vp8','WebM (VP8)'],
+    ['video/webm','WebM']
+  ];
+  for (const [m,label] of cands){
+    try { if (MediaRecorder.isTypeSupported(m)) return {mime:m, label, ext: m.indexOf('mp4')>=0 ? 'mp4' : 'webm'}; } catch(e){}
+  }
+  return null;
+}
+const VID = (function(){
+  const test = document.createElement('canvas');
+  const ok = typeof test.captureStream === 'function';
+  const mime = ok ? pickMime() : null;
+  freeCanvas(test);
+  return mime;
+})();
+
+const vidNote = document.getElementById('vidNote');
+const btnVid = document.getElementById('btnVid');
+if (!VID){
+  btnVid.disabled = true;
+  btnVid.textContent = 'Video nicht möglich';
+  vidNote.className = 'note warn';
+  vidNote.innerHTML = '<strong>Dieser Browser kann kein Video schreiben.</strong> Nimm die PNG-Sequenz — sie ist ohnehin die verlustfreie Variante und läuft überall.';
+} else {
+  vidNote.innerHTML = 'Aufzeichnung ergibt <strong>' + VID.label + '</strong>. Das läuft in Echtzeit, ' +
+    'die Bildrate kann daher leicht schwanken. Wenn es im Schnitt zählt, nimm die PNG-Sequenz.';
+}
+
+async function exportVideo(){
+  if (busy || !VID) return;
+  if (!S.img){ setStatus('Erst eine Charakterkarte laden.'); return; }
+  stop();
+  setBusy(true);
+  const dur = parseFloat(document.getElementById('selDur').value);
+  const fps = parseInt(document.getElementById('selFps').value,10);
+  const w   = parseInt(document.getElementById('selVRes').value,10);
+  const h   = Math.round(w*16/9);
+  const N   = Math.round(dur*fps);
+
+  const c = makeCanvas(w,h);
+  const ctx = c.getContext('2d');
+  render(ctx, w, h, 0, {});
+
+  let stream, track, rec;
+  try{
+    stream = c.captureStream(0);
+    track = stream.getVideoTracks()[0];
+    const manual = track && typeof track.requestFrame === 'function';
+    if (!manual){ stream.getTracks().forEach(t=>t.stop()); stream = c.captureStream(fps); }
+    rec = new MediaRecorder(stream, {mimeType: VID.mime, videoBitsPerSecond: 14000000});
+  } catch(err){
+    freeCanvas(c);
+    setBusy(false);
+    setStatus('Aufzeichnung nicht gestartet: ' + err.message + ' — bitte die PNG-Sequenz nehmen.');
+    return;
+  }
+
+  const chunks = [];
+  rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+  const done = new Promise(res => { rec.onstop = res; });
+  rec.start();
+
+  const t0 = performance.now();
+  const spf = 1000/fps;
+  try{
+    for (let i=0;i<N;i++){
+      const t = N === 1 ? 1 : i/(N-1);
+      render(ctx, w, h, t, {});
+      const tr = stream.getVideoTracks()[0];
+      if (tr && typeof tr.requestFrame === 'function') tr.requestFrame();
+      setProgress((i+1)/N);
+      setStatus('Aufzeichnung ' + (i+1) + '/' + N + ' …');
+      const target = t0 + (i+1)*spf;
+      const wait = Math.max(0, target - performance.now());
+      await new Promise(r=>setTimeout(r, wait));
+    }
+    await new Promise(r=>setTimeout(r, 240));   // letzten Frame ausschreiben lassen
+    rec.stop();
+    await done;
+    stream.getTracks().forEach(t=>t.stop());
+    freeCanvas(c);
+    const blob = new Blob(chunks, {type: VID.mime});
+    if (!blob.size) throw new Error('leere Datei');
+    saveBlob(blob, 'siegerbild-' + S.rarity + '-' + stamp() + '.' + VID.ext);
+    setStatus('Video gespeichert · ' + VID.label + ' · ' + (blob.size/1048576).toFixed(1) + ' MB');
+  } catch(err){
+    try{ stream.getTracks().forEach(t=>t.stop()); }catch(e){}
+    freeCanvas(c);
+    setStatus('Aufzeichnung fehlgeschlagen (' + (err.message||'unbekannt') + '). Die PNG-Sequenz ist der sichere Weg.');
+  } finally {
+    setProgress(null);
+    setBusy(false);
+  }
+}
+btnVid.addEventListener('click', exportVideo);
+
+/* ===================================================================
+   Start
+   =================================================================== */
+drawPreview();
+window.addEventListener('resize', scheduleDraw, {passive:true});
+
+})();
+</script>
+</body>
+</html>
